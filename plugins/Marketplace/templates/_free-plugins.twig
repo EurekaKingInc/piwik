@@ -1,0 +1,57 @@
+<div class="marketplace-max-width">
+    <p>
+        {% if not isSuperUser %}
+            {% if showThemes %}
+                {{ 'Marketplace_NotAllowedToBrowseMarketplaceThemes'|translate }}
+            {% else %}
+                {{ 'Marketplace_NotAllowedToBrowseMarketplacePlugins'|translate }}
+            {% endif %}
+
+        {% elseif whitelistedGithubOrgs and whitelistedGithubOrgs|length and distributor and distributor.getName %}
+            {% set whitelistedOrgs %}
+                {% for githubOrg in whitelistedGithubOrgs -%}
+                    {%- if loop.first -%}
+                    {%- elseif loop.last %}
+                        {{ 'General_And'|translate }}
+                    {% else %},
+                    {% endif -%}
+                    {{ githubOrg }}
+                {%- endfor %}
+            {% endset %}
+
+            {{ 'Marketplace_FreePluginsLimited'|translate(distributorLink, whitelistedOrgs)|raw }}
+
+        {% elseif showThemes %}
+                {{ 'CorePluginsAdmin_ThemesDescription'|translate }}
+                {{ 'Marketplace_InstallingNewPluginViaMarketplaceOrUpload'|translate(('CorePluginsAdmin_Themes'|translate), '<a href="#" class="uploadPlugin">', ('CorePluginsAdmin_Theme'|translate), '</a>')|raw }}
+                <br />
+                {{ 'Marketplace_BeCarefulUsingThemes'|translate }}
+        {% else %}
+                {{ 'CorePluginsAdmin_PluginsExtendPiwik'|translate }}
+                {{ 'Marketplace_InstallingNewPluginViaMarketplaceOrUpload'|translate(('General_Plugins'|translate), '<a href="#" class="uploadPlugin">', ('General_Plugin'|translate), '</a>')|raw }}
+                <br/>
+                {{ 'Marketplace_BeCarefulUsingPlugins'|translate }}
+        {% endif %}
+    </p>
+</div>
+
+<div class="ui-confirm" id="installPluginByUpload">
+    <h2>{{ 'Marketplace_TeaserExtendPiwikByUpload'|translate }}</h2>
+
+    <p class="description"> {{ 'Marketplace_AllowedUploadFormats'|translate }} </p>
+
+    <form enctype="multipart/form-data" method="post" id="uploadPluginForm"
+          action="{{ linkTo({'action':'uploadPlugin', 'nonce': installNonce}) }}">
+        <input type="file" name="pluginZip">
+        <br />
+        <input class="startUpload" type="submit" value="{{ 'Marketplace_UploadZipFile'|translate }}">
+    </form>
+</div>
+
+<hr/>
+
+{% include '@Marketplace/plugin-list.twig' %}
+
+<div class="footer-message">
+    {{ 'Marketplace_DevelopersLearnHowToDevelopPlugins'|translate('<a href="?module=Proxy&action=redirect&url=http://developer.piwik.org/plugins" target="_blank">', '</a>')|raw }}
+</div>

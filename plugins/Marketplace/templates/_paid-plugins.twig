@@ -1,0 +1,85 @@
+{% set defaultLicenseKeyFields %}
+    <input type="password" placeholder="{{ 'Marketplace_LicenseKey'|translate|e('html_attr') }}"
+           id="license_key">
+    <input disabled="disabled" class="btn" type="button"
+           id="submit_license_key"
+           value="{{ 'CoreUpdater_UpdateTitle'|translate|e('html_attr') }}">
+{% endset %}
+
+{% set isAuthenticatedCustomer = (consumer is not empty and consumer.isValid) %}
+{% set isExpiredCustomer = (consumer is not empty and consumer.isExpired) %}
+
+<div class="marketplace-max-width">
+    <p class="marketplace-paid-intro">
+        {% if isAuthenticatedCustomer %}
+            {% if isSuperUser %}
+                {% if consumer.isExpiredSoon %}
+                    <div class="alert alert-warning">{{ 'Marketplace_LicenseKeyExpiresSoon'|translate(distributorLink)|raw }}</div>
+                {% endif %}
+
+                {% if consumer.expireDateLong is defined and consumer.expireDateLong %}
+                    {{ 'Marketplace_PaidPluginsWithLicenseKeyAndExpireDayIntro'|translate(distributorLink, consumer.expireDateLong, distributorLink)|raw }}
+                {% else %}
+                    {{ 'Marketplace_PaidPluginsWithLicenseKeyAndNoExpireDayIntro'|translate(distributorLink)|raw }}
+                {% endif %}
+
+                <br /><br />
+
+                {{ defaultLicenseKeyFields|raw }}
+                <input id="remove_license_key" class="btn" type="button" value="{{ 'Marketplace_RemoveLicenseKey'|translate|e('html_attr') }}">
+
+                <span id="licenseKeyLoading"><img src="plugins/Morpheus/images/loading-blue.gif" alt="Loading data..."></span>
+
+            {% else %}
+                {{ 'Marketplace_NotAllowedToBrowseMarketplacePlugins'|translate }}
+            {% endif %}
+
+        {% else %}
+            {% if isExpiredCustomer %}
+                <div class="alert alert-warning">{{ 'Marketplace_LicenseKeyIsExpired'|translate(distributorLink)|raw }}</div>
+            {% endif %}
+
+            {% set upgradePiwikProLink = 'Marketplace'|piwikProOnPremisesPromoUrl %}
+            {% set piwikProLink = 'https://piwik.pro'|piwikProCampaignParameters('Marketplace', 'Marketplace', 'User') %}
+
+            {% if isSuperUser %}
+                {{ 'Marketplace_PaidPluginsNoLicenseKeyIntro'|translate('<a rel="noreferrer" target="_blank" href="' ~ piwikProLink ~ '">','</a>', '<a  rel="noreferrer"  target="_blank" href="' ~ upgradePiwikProLink ~ '">','</a>')|raw }}
+
+                <br /><br />
+
+                {{ defaultLicenseKeyFields|raw }}
+                {% if isExpiredCustomer %}
+                    <input id="remove_license_key" class="btn" type="button" value="{{ 'Marketplace_RemoveLicenseKey'|translate|e('html_attr') }}">
+                {% endif %}
+
+                <span id="licenseKeyLoading"><img src="plugins/Morpheus/images/loading-blue.gif" alt="Loading data..."></span>
+
+            {% else %}
+                {{ 'Marketplace_PaidPluginsNoLicenseKeyIntroNoSuperUserAccess'|translate('<a rel="noreferrer" target="_blank" href="' ~ piwikProLink ~ '">','</a>', '<a  rel="noreferrer"  target="_blank" href="' ~ upgradePiwikProLink ~ '">','</a>')|raw }}
+            {% endif %}
+
+        {% endif %}
+    </p>
+</div>
+
+<hr/>
+
+{% include '@Marketplace/plugin-list.twig' %}
+
+{% if isAuthenticatedCustomer and isAutoUpdatePossible and isPluginsAdminEnabled and paidPluginsToInstallAtOnce|length %}
+    <h3>{{ 'Marketplace_InstallAllPremiumFeatures'|translate }}</h3>
+    <p>
+    This will install and activate the following plugins:
+    </p>
+    <ul>
+        {% for pluginName in paidPluginsToInstallAtOnce %}
+            <li>{{ pluginName }}</li>
+        {% endfor %}
+    </ul>
+
+    <p>
+        <a href="{{ linkTo({'action': 'installAllPaidPlugins', 'nonce': installNonce}) }}" class="btn">
+            {{ 'Marketplace_InstallAllPremiumFeaturesAction'|translate(paidPluginsToInstallAtOnce|length) }}
+        </a>
+    </p>
+{% endif %}

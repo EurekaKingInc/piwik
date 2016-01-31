@@ -1,0 +1,64 @@
+{% extends mode is defined and mode == 'user' ? "user.twig" : "admin.twig" %}
+{% import '@Marketplace/macros.twig' as marketplaceMacro %}
+
+{% set title %}{{ 'Marketplace_Marketplace'|translate }}{% endset %}
+
+{% block content %}
+
+    {% if distributor and distributor.getName %}
+        {% set distributorLink = '<a rel="noreferrer" target="_blank" href="' ~ distributor.getHomepage|piwikProCampaignParameters('Marketplace', 'Marketplace', 'Client')|e('html_attr') ~ '">'~ distributor.getName ~ '</a>' %}
+    {% else %}
+        {% set distributorLink = '' %}
+    {% endif %}
+    
+    <div class="marketplace">
+
+        <h2 piwik-enriched-headline feature-name="{{ 'Marketplace_Marketplace'|translate }}">
+            {{ title }}
+        </h2>
+
+        <ul class="nav nav-pills">
+            {% set freePluginsLink %}
+                {% if freePlugins|length %}
+                    <li {% if showPlugins and showFree %}class="active"{% endif %}>
+                        <a href="{{ linkTo({'show': 'plugins', 'type': 'free'}) }}">{{ 'General_Plugins'|translate }}</a>
+                    </li>
+                {% endif %}
+            {% endset %}
+
+            {% set paidPluginsLink %}
+                {% if paidPlugins|length or showPaid %}
+                    <li {% if showPlugins and showPaid %}class="active"{% endif %}>
+                        <a href="{{ linkTo({'show': 'plugins', 'type': 'paid'}) }}">{{ 'Marketplace_PremiumFeatures'|translate }}</a>
+                    </li>
+                {% endif %}
+            {% endset %}
+
+            {% set freeThemesLink %}
+                {% if themes|length %}
+                    <li {% if showThemes %}class="active"{% endif %}>
+                        <a href="{{ linkTo({'show': 'themes', 'type': 'free'}) }}">{{ 'CorePluginsAdmin_Themes'|translate }}</a>
+                    </li>
+                {% endif %}
+            {% endset %}
+
+            {% if consumer is not empty %}
+                {{ paidPluginsLink }}
+                {{ freePluginsLink }}
+                {{ freeThemesLink }}
+            {% else %}
+                {{ freePluginsLink }}
+                {{ freeThemesLink }}
+                {{ paidPluginsLink }}
+            {% endif %}
+        </ul>
+
+        {% if showPaid %}
+            {% include '@Marketplace/_paid-plugins.twig' %}
+        {% else %}
+            {% include '@Marketplace/_free-plugins.twig' %}
+        {% endif %}
+
+    </div>
+
+{% endblock %}
