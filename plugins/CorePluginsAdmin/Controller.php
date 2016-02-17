@@ -70,6 +70,12 @@ class Controller extends Plugin\ControllerAdmin
         $pluginName = $this->initPluginModification($nonceName);
         $this->dieIfPluginsAdminIsDisabled();
 
+        if (!Marketplace::isMarketplaceEnabled()) {
+            throw new \Exception('The Marketplace feature has been disabled.
+                You may enable the Marketplace by changing the config entry "enable_marketplace" to 1.
+                Please contact your Piwik admins with your request so they can assist.');
+        }
+
         $view = $this->configureView('@CorePluginsAdmin/' . $template);
 
         $view->plugin = array('name' => $pluginName);
