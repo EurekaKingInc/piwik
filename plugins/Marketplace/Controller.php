@@ -38,6 +38,8 @@ use Exception;
  */
 class Controller extends \Piwik\Plugin\ControllerAdmin
 {
+    const UPDATE_NONCE = 'Marketplace.updatePlugin';
+    const INSTALL_NONCE = 'Marketplace.installPlugin';
 
     /**
      * @var Plugins
@@ -60,6 +62,11 @@ class Controller extends \Piwik\Plugin\ControllerAdmin
     private $pluginInstaller;
 
     /**
+     * @var Plugin\Manager
+     */
+    private $pluginManager;
+
+    /**
      * Controller constructor.
      * @param Plugins $plugins
      */
@@ -69,6 +76,7 @@ class Controller extends \Piwik\Plugin\ControllerAdmin
         $this->marketplaceApi = $marketplaceApi;
         $this->consumer = $consumer;
         $this->pluginInstaller = $pluginInstaller;
+        $this->pluginManager = Plugin\Manager::getInstance();
 
         parent::__construct();
     }
@@ -98,12 +106,10 @@ class Controller extends \Piwik\Plugin\ControllerAdmin
         $view->isEmbeddedViaXhr = $isEmbeddedViaXhr;
         $view->pageTitle = Piwik::translate('Marketplace_LicenseExpired');
 
-        $pluginManager = $this->getPluginManager();
-
         try {
-            $plugin = $pluginManager->getLoadedPlugin($pluginName);
+            $plugin = $this->pluginManager->getLoadedPlugin($pluginName);
             if ($plugin) {
-                $view->isTrackerPlugin = $pluginManager->isTrackerPlugin($plugin);
+                $view->isTrackerPlugin = $this->pluginManager->isTrackerPlugin($plugin);
             }
         } catch (Exception $e) {
 
@@ -137,8 +143,8 @@ class Controller extends \Piwik\Plugin\ControllerAdmin
 
         $view->plugin       = $plugin;
         $view->isSuperUser  = Piwik::hasUserSuperUserAccess();
-        $view->installNonce = Nonce::getNonce(PluginsController::INSTALL_NONCE);
-        $view->updateNonce  = Nonce::getNonce(PluginsController::UPDATE_NONCE);
+        $view->installNonce = Nonce::getNonce(static::INSTALL_NONCE);
+        $view->updateNonce  = Nonce::getNonce(static::UPDATE_NONCE);
         $view->activeTab    = $activeTab;
         $view->isAutoUpdatePossible = SettingsPiwik::isAutoUpdatePossible();
         $view->isAutoUpdateEnabled = SettingsPiwik::isAutoUpdateEnabled();
@@ -223,7 +229,7 @@ class Controller extends \Piwik\Plugin\ControllerAdmin
         if (SettingsPiwik::isAutoUpdatePossible()) {
             foreach ($paidPlugins as $paidPlugin) {
                 if ($this->canPluginBeInstalled($paidPlugin)
-                    || !$this->getPluginManager()->isPluginActivated($paidPlugin['name'])) {
+                    || !$this->pluginManager->isPluginActivated($paidPlugin['name'])) {
                     $paidPluginsToInstallAtOnce[] = $paidPlugin['name'];
                 }
             }
@@ -245,8 +251,8 @@ class Controller extends \Piwik\Plugin\ControllerAdmin
         $view->mode = $mode;
         $view->query = $query;
         $view->sort = $sort;
-        $view->installNonce = Nonce::getNonce(PluginsController::INSTALL_NONCE);
-        $view->updateNonce = Nonce::getNonce(PluginsController::UPDATE_NONCE);
+        $view->installNonce = Nonce::getNonce(static::INSTALL_NONCE);
+        $view->updateNonce = Nonce::getNonce(static::UPDATE_NONCE);
         $view->deactivateNonce = Nonce::getNonce(PluginsController::DEACTIVATE_NONCE);
         $view->activateNonce = Nonce::getNonce(PluginsController::ACTIVATE_NONCE);
         $view->isSuperUser = Piwik::hasUserSuperUserAccess();
@@ -264,7 +270,7 @@ class Controller extends \Piwik\Plugin\ControllerAdmin
         $this->dieIfPluginsAdminIsDisabled();
         Plugin\ControllerAdmin::displayWarningIfConfigFileNotWritable();
 
-        Nonce::checkNonce(PluginsController::INSTALL_NONCE);
+        Nonce::checkNonce(static::INSTALL_NONCE);
 
         $paidPlugins = $this->plugins->getAllPaidPlugins();
 
@@ -295,14 +301,13 @@ class Controller extends \Piwik\Plugin\ControllerAdmin
             return;
         }
 
-        $pluginManager = $this->getPluginManager();
         $dependency = new Plugin\Dependency();
 
         for ($i = 0; $i <= 10; $i++) {
             foreach ($paidPlugins as $index => $paidPlugin) {
                 $pluginName = $paidPlugin['name'];
 
-                if ($pluginManager->isPluginActivated($pluginName)) {
+                if ($this->pluginManager->isPluginActivated($pluginName)) {
                     unset($paidPlugins[$index]);
                     continue;
                 }
@@ -313,7 +318,7 @@ class Controller extends \Piwik\Plugin\ControllerAdmin
                     unset($paidPlugins[$index]);
 
                     try {
-                        $this->getPluginManager()->activatePlugin($pluginName);
+                        $this->pluginManager->activatePlugin($pluginName);
                     } catch (Exception $e) {
 
                         $hasErrors = true;
@@ -338,6 +343,70 @@ class Controller extends \Piwik\Plugin\ControllerAdmin
         Url::redirectToReferrer();
     }
 
+    public function updatePlugin()
+    {
+        $view = $this->createUpdateOrInstallView('updatePlugin', static::UPDATE_NONCE);
+        return $view->render();
+    }
+
+    public function installPlugin()
+    {
+        $view = $this->createUpdateOrInstallView('installPlugin', static::INSTALL_NONCE);
+        $view->nonce = Nonce::getNonce(PluginsController::ACTIVATE_NONCE);
+
+        return $view->render();
+    }
+
+    private function createUpdateOrInstallView($template, $nonceName)
+    {
+        Piwik::checkUserHasSuperUserAccess();
+        $this->dieIfPluginsAdminIsDisabled();
+        $this->displayWarningIfConfigFileNotWritable();
+
+        $pluginName = $this->getPluginNameIfNonceValid($nonceName);
+
+        $view = new View('@Marketplace/' . $template);
+        $this->setBasicVariablesView($view);
+        $view->errorMessage = '';
+        $view->plugin = array('name' => $pluginName);
+
+        try {
+            $this->pluginInstaller->installOrUpdatePluginFromMarketplace($pluginName);
+
+        } catch (\Exception $e) {
+
+            $notification = new Notification($e->getMessage());
+            $notification->context = Notification::CONTEXT_ERROR;
+            Notification\Manager::notify('CorePluginsAdmin_InstallPlugin', $notification);
+
+            Url::redirectToReferrer();
+            return;
+        }
+
+        $view->plugin = $this->plugins->getPluginInfo($pluginName);
+
+        return $view;
+    }
+
+    private function getPluginNameIfNonceValid($nonceName)
+    {
+        $nonce = Common::getRequestVar('nonce', null, 'string');
+
+        if (!Nonce::verifyNonce($nonceName, $nonce)) {
+            throw new \Exception(Piwik::translate('General_ExceptionNonceMismatch'));
+        }
+
+        Nonce::discardNonce($nonceName);
+
+        $pluginName = Common::getRequestVar('pluginName', null, 'string');
+
+        if (!$this->pluginManager->isValidPluginName($pluginName)) {
+            throw new Exception('Invalid plugin name');
+        }
+
+        return $pluginName;
+    }
+
     private function dieIfPluginsAdminIsDisabled()
     {
         if (!CorePluginsAdmin::isPluginsAdminEnabled()) {
@@ -358,11 +427,10 @@ class Controller extends \Piwik\Plugin\ControllerAdmin
         }
 
         $pluginName = $plugin['name'];
-        $pluginManager = $this->getPluginManager();
 
-        $isAlreadyInstalled = $pluginManager->isPluginInstalled($pluginName)
-            || $pluginManager->isPluginLoaded($pluginName)
-            || $pluginManager->isPluginActivated($pluginName);
+        $isAlreadyInstalled = $this->pluginManager->isPluginInstalled($pluginName)
+            || $this->pluginManager->isPluginLoaded($pluginName)
+            || $this->pluginManager->isPluginActivated($pluginName);
 
         return !$isAlreadyInstalled;
     }

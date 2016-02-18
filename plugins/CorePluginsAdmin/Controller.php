@@ -19,9 +19,9 @@ use Piwik\Notification;
 use Piwik\Piwik;
 use Piwik\Plugin;
 use Piwik\Plugins\Marketplace\Marketplace;
+use Piwik\Plugins\Marketplace\Controller as MarketplaceController;
 use Piwik\Plugins\Marketplace\Plugins;
 use Piwik\Settings\Manager as SettingsManager;
-use Piwik\SettingsPiwik;
 use Piwik\Translation\Translator;
 use Piwik\Url;
 use Piwik\Version;
@@ -29,8 +29,6 @@ use Piwik\View;
 
 class Controller extends Plugin\ControllerAdmin
 {
-    const UPDATE_NONCE = 'CorePluginsAdmin.updatePlugin';
-    const INSTALL_NONCE = 'CorePluginsAdmin.installPlugin';
     const ACTIVATE_NONCE = 'CorePluginsAdmin.activatePlugin';
     const DEACTIVATE_NONCE = 'CorePluginsAdmin.deactivatePlugin';
     const UNINSTALL_NONCE = 'CorePluginsAdmin.uninstallPlugin';
@@ -46,7 +44,8 @@ class Controller extends Plugin\ControllerAdmin
     private $pluginInstaller;
 
     /**
-     * @var Plugins
+     * Is null if Marketplace plugin is disabled
+     * @var Plugins|null
      */
     private $marketplacePlugins;
 
@@ -55,7 +54,7 @@ class Controller extends Plugin\ControllerAdmin
      */
     private $pluginManager;
 
-    public function __construct(Translator $translator, PluginInstaller $pluginInstaller, Plugins $marketplacePlugins)
+    public function __construct(Translator $translator, PluginInstaller $pluginInstaller, Plugins $marketplacePlugins = null)
     {
         $this->translator = $translator;
         $this->pluginInstaller = $pluginInstaller;
@@ -65,53 +64,6 @@ class Controller extends Plugin\ControllerAdmin
         parent::__construct();
     }
 
-    private function createUpdateOrInstallView($template, $nonceName)
-    {
-        $pluginName = $this->initPluginModification($nonceName);
-        $this->dieIfPluginsAdminIsDisabled();
-
-        if (!Marketplace::isMarketplaceEnabled()) {
-            throw new \Exception('The Marketplace feature has been disabled.
-                You may enable the Marketplace by changing the config entry "enable_marketplace" to 1.
-                Please contact your Piwik admins with your request so they can assist.');
-        }
-
-        $view = $this->configureView('@CorePluginsAdmin/' . $template);
-
-        $view->plugin = array('name' => $pluginName);
-
-        try {
-            $this->pluginInstaller->installOrUpdatePluginFromMarketplace($pluginName);
-
-        } catch (\Exception $e) {
-
-            $notification = new Notification($e->getMessage());
-            $notification->context = Notification::CONTEXT_ERROR;
-            Notification\Manager::notify('CorePluginsAdmin_InstallPlugin', $notification);
-
-            $this->redirectAfterModification(true);
-            return;
-        }
-
-        $view->plugin = $this->marketplacePlugins->getPluginInfo($pluginName);
-
-        return $view;
-    }
-
-    public function updatePlugin()
-    {
-        $view = $this->createUpdateOrInstallView('updatePlugin', static::UPDATE_NONCE);
-        return $view->render();
-    }
-
-    public function installPlugin()
-    {
-        $view = $this->createUpdateOrInstallView('installPlugin', static::INSTALL_NONCE);
-        $view->nonce = Nonce::getNonce(static::ACTIVATE_NONCE);
-
-        return $view->render();
-    }
-
     public function uploadPlugin()
     {
         static::dieIfPluginsAdminIsDisabled();
@@ -119,11 +71,11 @@ class Controller extends Plugin\ControllerAdmin
 
         $nonce = Common::getRequestVar('nonce', null, 'string');
 
-        if (!Nonce::verifyNonce(static::INSTALL_NONCE, $nonce)) {
+        if (!Nonce::verifyNonce(MarketplaceController::INSTALL_NONCE, $nonce)) {
             throw new \Exception($this->translator->translate('General_ExceptionNonceMismatch'));
         }
 
-        Nonce::discardNonce(static::INSTALL_NONCE);
+        Nonce::discardNonce(MarketplaceController::INSTALL_NONCE);
 
         if (empty($_FILES['pluginZip'])) {
             throw new \Exception('You did not specify a ZIP file.');
@@ -140,7 +92,7 @@ class Controller extends Plugin\ControllerAdmin
 
         $view = $this->configureView('@CorePluginsAdmin/uploadPlugin');
 
-        $pluginMetadata  = $this->pluginInstaller->installOrUpdatePluginFromFile($file);
+        $pluginMetadata = $this->pluginInstaller->installOrUpdatePluginFromFile($file);
 
         $view->nonce = Nonce::getNonce(static::ACTIVATE_NONCE);
         $view->plugin = array(
@@ -191,7 +143,7 @@ class Controller extends Plugin\ControllerAdmin
 
         $view = $this->configureView('@CorePluginsAdmin/' . $template);
 
-        $view->updateNonce = Nonce::getNonce(static::UPDATE_NONCE);
+        $view->updateNonce = Nonce::getNonce(MarketplaceController::UPDATE_NONCE);
         $view->activateNonce = Nonce::getNonce(static::ACTIVATE_NONCE);
         $view->uninstallNonce = Nonce::getNonce(static::UNINSTALL_NONCE);
         $view->deactivateNonce = Nonce::getNonce(static::DEACTIVATE_NONCE);
@@ -208,7 +160,7 @@ class Controller extends Plugin\ControllerAdmin
         $view->pluginsHavingUpdate    = array();
         $view->marketplacePluginNames = array();
 
-        if (Marketplace::isMarketplaceEnabled()) {
+        if (Marketplace::isMarketplaceEnabled() && $this->marketplacePlugins) {
             try {
                 $view->marketplacePluginNames = $this->marketplacePlugins->getAvailablePluginNames($themesOnly);
                 $view->pluginsHavingUpdate    = $this->marketplacePlugins->getPluginsHavingUpdate();

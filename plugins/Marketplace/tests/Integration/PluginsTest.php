@@ -18,6 +18,7 @@ use Piwik\Plugins\Marketplace\tests\Framework\Mock\Service;
 use Piwik\Tests\Framework\Mock\PiwikPro\Advertising;
 use Piwik\Tests\Framework\TestCase\IntegrationTestCase;
 use Piwik\Plugin;
+use Piwik\Version;
 
 /**
  * @group Marketplace
@@ -200,7 +201,16 @@ class PluginsTest extends IntegrationTestCase
         $this->assertSame(array(), $plugins);
         $this->assertSame('plugins', $this->service->action);
 
-        $params = array('keywords' => '', 'purchase_type' => '', 'query' => 'pages','sort' => Sort::DEFAULT_SORT);
+        $params = array(
+            'keywords' => '',
+            'purchase_type' => '',
+            'query' => 'pages',
+            'sort' => Sort::DEFAULT_SORT,
+            'release_channel' => 'latest_stable',
+            'prefer_stable' => 1,
+            'piwik' => Version::VERSION,
+            'php' => phpversion(),
+        );
         $this->assertSame($params, $this->service->params);
     }
 
@@ -213,7 +223,16 @@ class PluginsTest extends IntegrationTestCase
         $this->assertSame('AnotherBlackTheme', $plugins[0]['name']);
         $this->assertSame('themes', $this->service->action);
 
-        $params = array('keywords' => '', 'purchase_type' => '', 'query' => '','sort' => Sort::DEFAULT_SORT);
+        $params = array(
+            'keywords' => '',
+            'purchase_type' => '',
+            'query' => '',
+            'sort' => Sort::DEFAULT_SORT,
+            'release_channel' => 'latest_stable',
+            'prefer_stable' => 1,
+            'piwik' => Version::VERSION,
+            'php' => phpversion(),
+        );
         $this->assertSame($params, $this->service->params);
     }
 

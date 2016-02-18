@@ -154,7 +154,7 @@ class ClientTest extends SystemTestCase
 
     public function test_clientResponse_shouldBeCached()
     {
-        $id = 'marketplace.api.2.0.plugins.' . md5(http_build_query(array('keywords' => 'login', 'purchase_type' => '', 'query' => '', 'sort' => '')));
+        $id = 'marketplace.api.2.0.plugins.' . md5(http_build_query(array('keywords' => 'login', 'purchase_type' => '', 'query' => '', 'sort' => '', 'release_channel' => 'latest_stable', 'prefer_stable' => 1, 'piwik' => Version::VERSION, 'php' => phpversion())));
 
         $cache = $this->getCache();
         $this->assertFalse($cache->contains($id));
@@ -171,7 +171,7 @@ class ClientTest extends SystemTestCase
 
     public function test_cachedClientResponse_shouldBeReturned()
     {
-        $id = 'marketplace.api.2.0.plugins.' . md5(http_build_query(array('keywords' => 'login', 'purchase_type' => '', 'query' => '', 'sort' => '')));
+        $id = 'marketplace.api.2.0.plugins.' . md5(http_build_query(array('keywords' => 'login', 'purchase_type' => '', 'query' => '', 'sort' => '', 'release_channel' => 'latest_stable', 'prefer_stable' => 1, 'piwik' => Version::VERSION, 'php' => phpversion())));
 
         $cache = $this->getCache();
         $cache->save($id, array('plugins' => array('foo' => 'bar')));
@@ -188,7 +188,7 @@ class ClientTest extends SystemTestCase
         $client->getInfoOfPluginsHavingUpdate(Plugin\Manager::getInstance()->getLoadedPlugins());
 
         $this->assertSame('plugins/checkUpdates', $service->action);
-        $this->assertSame(array('plugins'), array_keys($service->params));
+        $this->assertSame(array('plugins', 'release_channel', 'prefer_stable', 'piwik', 'php'), array_keys($service->params));
 
         $plugins = $service->params['plugins'];
         $this->assertInternalType('string', $plugins);
@@ -220,7 +220,7 @@ class ClientTest extends SystemTestCase
             $service = new Service($this->domain);
         }
 
-        return new Client($service, $this->getCache(), new NullLogger());
+        return new Client($service, $this->getCache(), new NullLogger(), new Plugin\ReleaseChannels(Plugin\Manager::getInstance()));
     }
 
     private function getCache()

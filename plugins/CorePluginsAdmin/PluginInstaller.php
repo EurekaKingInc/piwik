@@ -28,17 +28,20 @@ class PluginInstaller
     private $pluginName;
 
     /**
-     * @var Client
+     * Null if Marketplace Plugin is not installed
+     * @var Client|null
      */
     private $marketplaceClient;
 
-    public function __construct(Client $client)
+    public function __construct(Client $client = null)
     {
         $this->marketplaceClient = $client;
     }
 
     public function installOrUpdatePluginFromMarketplace($pluginName)
     {
+        $this->checkMarketplaceIsEnabled();
+
         $this->pluginName = $pluginName;
 
         try {
@@ -307,6 +310,13 @@ class PluginInstaller
 
         if (empty($pluginDetails)) {
             throw new PluginInstallerException('This plugin was not found in the Marketplace.');
+        }
+    }
+
+    private function checkMarketplaceIsEnabled()
+    {
+        if (!isset($this->marketplaceClient)) {
+            throw new PluginInstallerException('Marketplace plugin needs to be enabled to perform this action.');
         }
     }
 

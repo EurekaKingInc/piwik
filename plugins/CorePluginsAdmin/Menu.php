@@ -20,7 +20,7 @@ class Menu extends \Piwik\Plugin\Menu
 {
     private $marketplacePlugins;
 
-    public function __construct(Plugins $marketplacePlugins)
+    public function __construct(Plugins $marketplacePlugins = null)
     {
         $this->marketplacePlugins = $marketplacePlugins;
     }
@@ -33,7 +33,7 @@ class Menu extends \Piwik\Plugin\Menu
 
         $pluginsUpdateMessage = '';
 
-        if ($hasSuperUserAcess && $isMarketplaceEnabled) {
+        if ($hasSuperUserAcess && $isMarketplaceEnabled && $this->marketplacePlugins) {
             $pluginsHavingUpdate = $this->marketplacePlugins->getPluginsHavingUpdate();
 
             if (!empty($pluginsHavingUpdate)) {

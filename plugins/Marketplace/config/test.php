@@ -10,6 +10,9 @@ use Piwik\Container\StaticContainer;
 
 return array(
     'MarketplaceEndpoint' => function (ContainerInterface $c) {
+        // if you wonder why this here is configured here again, and the same as in `config.php`,
+        // it is because someone might have overwritten MarketplaceEndpoit in local config.php and we want
+        // to make sure system tests of marketplace are ran against plugins.piwik.org
         $domain = 'http://plugins.piwik.org';
         $updater = $c->get('Piwik\Plugins\CoreUpdater\Updater');
 

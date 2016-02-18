@@ -15,15 +15,16 @@ use Piwik\Updater;
 use Piwik\Updates as PiwikUpdates;
 
 /**
- * Update for version 2.16.1-b1.
+ * Update for version 2.16.1-b2.
  */
-class Updates_2_16_1_b1 extends PiwikUpdates
+class Updates_2_16_1_b2 extends PiwikUpdates
 {
     private $marketplacEnabledConfigSetting = 'enable_marketplace';
 
     public function doUpdate(Updater $updater)
     {
-        $isMarketplaceEnabled = $this->getConfig()->General[$this->marketplacEnabledConfigSetting];
+        $general = $this->getConfig()->General;
+        $isMarketplaceEnabled = !empty($general[$this->marketplacEnabledConfigSetting]);
 
         $this->removeOldMarketplaceEnabledConfig();
 

@@ -8,6 +8,7 @@
  */
 namespace Piwik\Plugin;
 
+use Piwik\Common;
 use Piwik\Plugin\Manager as PluginManager;
 use Piwik\Version;
 
@@ -62,6 +63,12 @@ class Dependency
             if (preg_match('{^(<>|!=|>=?|<=?|==?)\s*(.*)}', $required, $matches)) {
                 $required   = $matches[2];
                 $comparison = trim($matches[1]);
+            }
+
+            if (Common::stringEndsWith($required, '-stable')) {
+                // -stable can be used in composer but version_compare won't recognize it correctly. If a stable
+                // version is wanted we can simple remove -stable.
+                $required = str_replace('-stable', '', $required);
             }
 
             if (false === version_compare($currentVersion, $required, $comparison)) {

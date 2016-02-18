@@ -14,6 +14,7 @@ use Piwik\Container\StaticContainer;
 use Piwik\Filesystem;
 use Piwik\Http;
 use Piwik\Plugin;
+use Piwik\UpdateCheck\ReleaseChannel;
 use Piwik\Plugins\Marketplace\Api\Service;
 use Piwik\SettingsServer;
 use Piwik\Version;
@@ -48,12 +49,18 @@ class Client
      */
     private $logger;
 
-    public function __construct(Service $service, Cache\Lazy $cache, LoggerInterface $logger)
+    /**
+     * @var ReleaseChannel
+     */
+    private $releaseChannel;
+
+    public function __construct(Service $service, Cache\Lazy $cache, LoggerInterface $logger, Plugin\ReleaseChannels $releaseChannels)
     {
         $this->service = $service;
         $this->cache = $cache;
         $this->logger = $logger;
         $this->pluginManager = Plugin\Manager::getInstance();
+        $this->releaseChannel = $releaseChannels->getActiveReleaseChannel();
     }
 
     public function getPluginInfo($name)
@@ -131,7 +138,7 @@ class Client
             return array();
         }
 
-        $params = array('plugins' => $params, 'piwik' => Version::VERSION, 'php' => PHP_VERSION);
+        $params = array('plugins' => $params);
 
         $hasUpdates = $this->fetch('plugins/checkUpdates', array('plugins' => json_encode($params)));
 
@@ -199,6 +206,15 @@ class Client
     private function fetch($action, $params)
     {
         ksort($params); // sort params so cache is reused more often even if param order is different
+
+        if (!empty($this->releaseChannel)) {
+            $params['release_channel'] = $this->releaseChannel->getId();
+            $params['prefer_stable'] = (int) $this->releaseChannel->doesPreferStable();
+        }
+
+        $params['piwik'] = Version::VERSION;
+        $params['php'] = phpversion();
+
         $query = http_build_query($params);
         $cacheId = $this->getCacheKey($action, $query);
 

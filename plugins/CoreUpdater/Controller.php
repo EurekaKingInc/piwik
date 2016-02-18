@@ -45,7 +45,7 @@ class Controller extends \Piwik\Plugin\Controller
      */
     private $marketplacePlugins;
 
-    public function __construct(Updater $updater, Plugins $marketplacePlugins)
+    public function __construct(Updater $updater, Plugins $marketplacePlugins = null)
     {
         $this->updater = $updater;
         $this->marketplacePlugins = $marketplacePlugins;
@@ -71,7 +71,7 @@ class Controller extends \Piwik\Plugin\Controller
 
         $marketplacePlugins = array();
         try {
-            if (!empty($incompatiblePlugins)) {
+            if (!empty($incompatiblePlugins) && $this->marketplacePlugins) {
                 $marketplacePlugins = $this->marketplacePlugins->getAllAvailablePluginNames();
             }
         } catch (\Exception $e) {}

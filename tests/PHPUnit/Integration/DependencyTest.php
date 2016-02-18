@@ -74,6 +74,20 @@ class DependencyTest extends IntegrationTestCase
         ));
     }
 
+    public function test_getMissingDependencies_shouldIgnoreStableAppendix()
+    {
+        $this->assertMissingDependency(array('php' => '<5.2-stable', 'piwik' => '<2.0-stable'), array(
+            $this->missingPhp('<5.2-stable', '<5.2'),
+            $this->missingPiwik('<2.0-stable', '<2.0')
+        ));
+
+        $this->assertMissingDependency(array('php' => '<5.2-stable', 'piwik' => '<9.0-stable'), array(
+            $this->missingPhp('<5.2-stable', '<5.2')
+        ));
+
+        $this->assertMissingDependency(array('php' => '<9.2-stable', 'piwik' => '<9.0-stable'), array());
+    }
+
     public function test_getMissingVersion_AND_Condition()
     {
         $this->assertMissingDependency(array('php' => '<2.0,>=9.0', 'piwik' => '<2.0'), array(
