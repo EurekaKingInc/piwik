@@ -2679,10 +2679,7 @@ if (typeof Piwik !== 'object') {
                 trackerUrl   = trackerUrl.slice(0, posQuery);
             }
 
-            if (stringEndsWith(trackerUrl, 'piwik.php')) {
-                // if eg without domain or path "piwik.php" => ''
-                trackerUrl = removeCharactersFromEndOfString(trackerUrl, 'piwik.php'.length);
-            } else if (stringEndsWith(trackerUrl, '.php')) {
+            if (stringEndsWith(trackerUrl, '.php')) {
                 // if eg http://www.example.com/js/piwik.php => http://www.example.com/js/
                 // or if eg http://www.example.com/tracker.php => http://www.example.com/
                 var lastSlash = trackerUrl.lastIndexOf('/');
