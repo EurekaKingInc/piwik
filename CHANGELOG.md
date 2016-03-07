@@ -7,7 +7,7 @@ This is a changelog for Piwik platform developers. All changes for our HTTP API'
 ### Internal change
  * The setting `[General]enable_marketplace=0/1` was removed, instead the new plugin Marketplace can be disabled/enabled. The updater should automatically migrate an existing setting.
  * To check whether a Piwik instance meets all requirements specified in `plugin.json` we now use [composer/semver](https://github.com/composer/semver). Because of this there are a couple of changes to how a `require` is defined. It affects only a few plugins and we will notify the plugin developers about this.
-   * The default comparison changed from `>=` to `==`. For example when a plugin specifes eg `"require": { "piwik": "2.4.0",` it now requires `==2.4.0` and not `>=2.4.0`.
+   * The default comparison changed from `>=` to `==`. For example when a plugin specifies eg `"require": { "piwik": "2.4.0",` it now requires `==2.4.0` and not `>=2.4.0`.
    * If the operator `>=` or `<` is used without any appendix, for example `>=Major.Minor.Patch`, it will now actually match also all pre-releases as well and is the same as (`>=Major.Minor.Patch-dev`). To require a stable version, it needs a `-stable` appendix (eg. `>=2.16.0-stable`).
 
 ## Piwik 2.16.0
