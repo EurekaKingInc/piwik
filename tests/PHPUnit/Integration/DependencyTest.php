@@ -77,12 +77,12 @@ class DependencyTest extends IntegrationTestCase
     public function test_getMissingDependencies_shouldIgnoreStableAppendix()
     {
         $this->assertMissingDependency(array('php' => '<5.2-stable', 'piwik' => '<2.0-stable'), array(
-            $this->missingPhp('<5.2-stable', '<5.2'),
-            $this->missingPiwik('<2.0-stable', '<2.0')
+            $this->missingPhp('<5.2-stable'),
+            $this->missingPiwik('<2.0-stable')
         ));
 
         $this->assertMissingDependency(array('php' => '<5.2-stable', 'piwik' => '<9.0-stable'), array(
-            $this->missingPhp('<5.2-stable', '<5.2')
+            $this->missingPhp('<5.2-stable')
         ));
 
         $this->assertMissingDependency(array('php' => '<9.2-stable', 'piwik' => '<9.0-stable'), array());
@@ -161,7 +161,7 @@ class DependencyTest extends IntegrationTestCase
 
     public function test_getMissingVersion_EmptyCurrentVersion_ShouldBeDeclaredAsMissing()
     {
-        $this->assertMissingVersion('', '5.5', array('>=5.5'));
+        $this->assertMissingVersion('', '5.5', array('5.5'));
     }
 
     public function test_getMissingVersion_EmptyRequiredVersion_ShouldBeIgnored()
@@ -177,11 +177,11 @@ class DependencyTest extends IntegrationTestCase
         $this->assertMissingVersion('5.5', ' 5.5 ', array());
     }
 
-    public function test_getMissingVersion_NoComparisonDefined_ShouldUseGreatherThanOrEqualByDefault()
+    public function test_getMissingVersion_NoComparisonDefined_ShouldUseEqualByDefault()
     {
-        $this->assertMissingVersion('5.4', '5.2', array());
         $this->assertMissingVersion('5.4', '5.4', array());
-        $this->assertMissingVersion('5.4', '9.2', array('>=9.2'));
+        $this->assertMissingVersion('5.4', '5.2', array('5.2'));
+        $this->assertMissingVersion('5.4', '9.2', array('9.2'));
     }
 
     public function test_getMissingVersion_GreatherThanOrEqual()
@@ -244,9 +244,9 @@ class DependencyTest extends IntegrationTestCase
 
     public function test_getMissingVersion_AND_Condition_shouldIgnoreAnyWhitespace()
     {
-        $this->assertMissingVersion('5.2', '5.5 , 5.4,   5.3', array('>=5.5', '>=5.4', '>=5.3'));
-        $this->assertMissingVersion('5.5', '5.5 , 5.4,   5.3', array());
-        $this->assertMissingVersion(' 5.2 ', '5.5 , 5.4,   5.3', array('>=5.5', '>=5.4', '>=5.3'));
+        $this->assertMissingVersion('5.2', '>=5.5 , >=5.4,   >=5.3', array('>=5.5', '>=5.4', '>=5.3'));
+        $this->assertMissingVersion('5.5', '>=5.5 , >=5.4,   >=5.3', array());
+        $this->assertMissingVersion(' 5.3 ', '5.5 , 5.4,   5.3', array('5.5', '5.4'));
         $this->assertMissingVersion(' 5.2 ', '>5.5 , <5.4,   ==5.3', array('>5.5', '==5.3'));
         $this->assertMissingVersion(' 5.2 ', '>5.5 , !=5.4,   ==5.3', array('>5.5', '==5.3'));
     }

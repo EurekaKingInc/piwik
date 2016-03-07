@@ -8,6 +8,7 @@
  */
 namespace Piwik\Plugin;
 
+use Composer\Semver\VersionParser;
 use Piwik\Common;
 use Piwik\Plugin\Manager as PluginManager;
 use Piwik\Version;
@@ -51,28 +52,34 @@ class Dependency
 
     public function getMissingVersions($currentVersion, $requiredVersion)
     {
-        $currentVersion   = trim($currentVersion);
-        $requiredVersions = explode(',', (string) $requiredVersion);
+        $currentVersion = trim($currentVersion);
 
         $missingVersions = array();
 
+        if (empty($currentVersion)) {
+            if (!empty($requiredVersion)) {
+                $missingVersions[] = (string) $requiredVersion;
+            }
+
+            return $missingVersions;
+        }
+
+        $version = new VersionParser();
+        $constraintsExisting = $version->parseConstraints($currentVersion);
+
+        $requiredVersions = explode(',', (string) $requiredVersion);
+
         foreach ($requiredVersions as $required) {
-            $comparison = '>=';
-            $required   = trim($required);
+            $required = trim($required);
 
-            if (preg_match('{^(<>|!=|>=?|<=?|==?)\s*(.*)}', $required, $matches)) {
-                $required   = $matches[2];
-                $comparison = trim($matches[1]);
+            if (empty($required)) {
+                continue;
             }
 
-            if (Common::stringEndsWith($required, '-stable')) {
-                // -stable can be used in composer but version_compare won't recognize it correctly. If a stable
-                // version is wanted we can simple remove -stable.
-                $required = str_replace('-stable', '', $required);
-            }
+            $constraintRequired = $version->parseConstraints($required);
 
-            if (false === version_compare($currentVersion, $required, $comparison)) {
-                $missingVersions[] = $comparison . $required;
+            if (!$constraintRequired->matches($constraintsExisting)) {
+                $missingVersions[] = $required;
             }
         }
 
